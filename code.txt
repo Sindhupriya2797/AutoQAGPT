@@ -98,7 +98,7 @@ file.write(final_code)
 print("\n Selenium Test Script Saved \n")
 print("\n Running Selenium Tests: ")
 os.system("python generated_test.py")
-# Main function
+# Main function for execution 
 def main():
 url = input("Enter the URL to parse and test: ").strip()
 print("\n Fetching and Parsing HTML:")
