@@ -9,7 +9,7 @@ import autopep8
 import re
 
 # Setting API key
-openai.api_key = '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'
+openai.api_key = 'OPENAI_API_KEY'
 
 # Fetching HTML content from the URL
 def fetch_html(url):
