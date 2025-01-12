@@ -7,111 +7,129 @@ import openai
 import os
 import autopep8
 import re
+
 # Setting API key
-openai.api_key = 'sk-proj-uUirtqU6lpZNRR-
-azOf5bXKMBTMhC3tAaKRvaOl3AGkfWbnjS46sq0sNGJO-t42G-S1dEIcCNzT3BlbkFJwp5Pxey6oYBV7-
-EMJQSExBgoGIBDlx2mTRUrwXPzFHXNI1QHN-B4ffnarPvTZQClh8k0qGuaAA'
+openai.api_key = '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'
+
 # Fetching HTML content from the URL
 def fetch_html(url):
-response = requests.get(url)
-response.raise_for_status()
-return BeautifulSoup(response.text, 'html.parser')
+    response = requests.get(url)
+    response.raise_for_status()
+    return BeautifulSoup(response.text, 'html.parser')
+
 # Parsing the HTML to extract all the elements
 def parse_html(soup):
-parsed_data = {
-'title': soup.title.string if soup.title else "No title found",
-'links': [a['href'] for a in soup.find_all('a', href=True)],
-'headings': {f"h{level}": [h.text.strip() for h in
-soup.find_all(f"h{level}")] for level in range(1, 7)},
-'images': [img['src'] for img in soup.find_all('img', src=True)],
-}
-return parsed_data
+    parsed_data = {
+        'title': soup.title.string if soup.title else "No title found",
+        'links': [a['href'] for a in soup.find_all('a', href=True)],
+        'headings': {f"h{level}": [h.text.strip() for h in soup.find_all(f"h{level}")] for level in range(1, 7)},
+        'images': [img['src'] for img in soup.find_all('img', src=True)],
+
+    }
+    return parsed_data
+
 # Generating Selenium code using OpenAI
 def generate_selenium_code(url, parsed_data):
-prompt = (
-f"Generate robust Selenium Python code based on the following parsed HTML
-data:\n\n"
-f"URL: {url}\n\n"
-f"Parsed Data:\n{json.dumps(parsed_data, indent=2)[:1000]}...\n\n"
-f"Instructions:\n"
-f"1. Write 10 test cases to verify elements like titles, headings, images
-and write test case for links in the last.\n"
-f"2. Automate each test case and provide the Selenium Python code, if links
-are present, click on 2 links and navigate.\n"
-f"3. Write the Chrome driver setup using ChromeOptions but exclude the '--
-headless' argument.\n"
-f"4. write the code for maximizing the chrome window and time.sleep() for
-loading the elements.\n"
-f"5. Replace find_element_by_* methods with find_element(By.*).\n"
-f"6. Open Chrome and test the test cases which are generated.\n"
-f"7. Log the pass/fail result of each test case beside the test case name.\
-n"
-)
-try:
-response = openai.chat.completions.create(
-model="gpt-4",
-messages=[{"role": "user", "content": prompt}],
-temperature=0,
-max_tokens=1500
-)
-return response.choices[0].message.content
-except Exception as e:
-print(f"Error generating Selenium code: {e}")
-return None
+    prompt = (
+        f"Generate robust Selenium Python code based on the following parsed HTML data:\n\n"
+        f"URL: {url}\n\n"
+        f"Parsed Data:\n{json.dumps(parsed_data, indent=2)[:1000]}...\n\n"
+        f"Instructions:\n"
+        f"1. Write at least 10 test cases to verify elements like titles, headings, images and write test case for links in the last.\n"
+        f"2. Automate each test case and provide the Selenium Python code, if links are present, click on 2 links and navigate.\n"
+        f"3. Write the Chrome driver setup using ChromeOptions but exclude the '--headless' argument.\n"
+        f"4. write the code for maximizing the chrome window and time.sleep() for loading the elements.\n"
+        f"5. Replace find_element_by_* methods with find_element(By.*).\n"
+        f"6. Open Chrome and test the test cases which are generated.\n"
+        f"7. Log the pass/fail result of each test case beside the test case name.\n"
+    )
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+            max_tokens=1500
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Error generating Selenium code: {e}")
+        return None
+
 # Setting up Chrome browser for testing
 def setup_chrome():
-options = Options()
-# Explicitly ensure no "--headless" argument is used
-driver = webdriver.Chrome(options=options)
-return driver
+    options = Options()
+    # Explicitly ensure no "--headless" argument is used
+    driver = webdriver.Chrome(options=options)
+    return driver
+
 # Cleaning and formating the generated code using autopep8
 def format_selenium_code(selenium_code):
-formatted_code = autopep8.fix_code(selenium_code)
-return formatted_code
+    formatted_code = autopep8.fix_code(selenium_code)
+    return formatted_code
+
 # Removing unwanted sections using regex
 def clean_selenium_code(code):
-unwanted_patterns = [
-r"Here is the Selenium Python code.*?instructions:", # General redundant
-code descriptions
-r"python|```|```python|\n```", # Code block markers
-r"Please replace '/path/to/chromedriver'.*?tests in the browser.*?\s*",
-r"This script checks the number of elements.*?test failed\.\s*",
-r"Please note that this is a basic script.*?more detailed assertions.*\)\.\
-s*"
-]
-return re.sub('|'.join(unwanted_patterns), '', code, flags=re.DOTALL)
+    unwanted_patterns = [
+        r"Here is a sample Selenium Python code based on the parsed HTML data and instructions provided:\s*",
+        r"Here is a sample Selenium Python code based on the parsed HTML data and instructions:\s*",
+        r"Here is the Selenium Python code based on the instructions:\s*",
+        r"Here is a sample Selenium Python code that follows the instructions:\s*",
+        r"Here is a sample Selenium Python code to automate the test cases based on the parsed HTML data:\s*",
+        r"Here is the Selenium Python code for the given instructions:\s*",
+        r"Here is the Selenium Python code based on the parsed HTML data:\s*",
+        r"Here is the Selenium Python code based on the parsed HTML data and instructions:\s*",
+        r"Here is the Selenium Python code based on your instructions:\s*",
+        r"Here is a sample Selenium Python code based on your instructions:\s*",
+        r"python",
+        r"",
+        r"python",  # Code block opening
+        r"\n```",  # Code block closing
+        r"Please replace '/path/to/chromedriver' with the actual path of your ChromeDriver\..?tests in the browser without actually opening it\.\s",
+        r"This script checks the number of elements like titles, links, headings, images, and buttons\..?prints that the test failed\.\s",
+        r"Please note that this is a basic script\..?more detailed assertions\(e\.g\., checking the text of headings, the URLs of links, etc\)\.\s"
+    ]
+    for pattern in unwanted_patterns:
+        code = re.sub(pattern, '', code, flags=re.DOTALL)
+    return code
+
 # Removing lines after driver.quit()
 def remove_lines_after_quit(code):
-lines = code.splitlines()
-for i, line in enumerate(lines):
-if 'driver.quit()' in line:
-return '\n'.join(lines[:i + 1])
-print("No driver.quit() statement found.")
-return code
+    lines = code.splitlines()
+    for i, line in enumerate(lines):
+        if 'driver.quit()' in line:
+            return '\n'.join(lines[:i + 1])
+    print("No driver.quit() statement found.")
+    return code
+
 # Executing generated Selenium code
 def execute_selenium_code(selenium_code, url):
-cleaned_code = clean_selenium_code(selenium_code)
-formatted_code = format_selenium_code(cleaned_code)
-final_code = remove_lines_after_quit(formatted_code)
-with open("generated_test.py", "w") as file:
-file.write(final_code)
-print("\n Selenium Test Script Saved \n")
-print("\n Running Selenium Tests: ")
-os.system("python generated_test.py")
-# Main function for execution 
+    cleaned_code = clean_selenium_code(selenium_code)
+    formatted_code = format_selenium_code(cleaned_code)
+    final_code = remove_lines_after_quit(formatted_code)
+
+    with open("generated_test.py", "w") as file:
+        file.write(final_code)
+    print("\n   Selenium Test Script Saved  \n")
+
+    print("\n   Running Selenium Tests:  ")
+    os.system("python generated_test.py")
+
+# Main function
 def main():
-url = input("Enter the URL to parse and test: ").strip()
-print("\n Fetching and Parsing HTML:")
-soup = fetch_html(url)
-parsed_data = parse_html(soup)
-print("\n Parsed Data is: \n", json.dumps(parsed_data, indent=2))
-print("\n Generating Selenium Code:")
-selenium_code = generate_selenium_code(url, parsed_data)
-if selenium_code:
-print("\n Generated Selenium Code: \n", selenium_code)
-print("\n Setting up Chrome and Running Tests: ")
-execute_selenium_code(selenium_code, url)
-else:
-print("Failed to generate Selenium code.")
-if __name__ == "__main__":
-main()
+    url = input("Enter the URL to parse and test: ").strip()
+    print("\n  Fetching and Parsing HTML:")
+    soup = fetch_html(url)
+    parsed_data = parse_html(soup)
+    print("\n  Parsed Data is: \n", json.dumps(parsed_data, indent=2))
+
+    print("\n  Generating Selenium Code:")
+    selenium_code = generate_selenium_code(url, parsed_data)
+    if selenium_code:
+        print("\n  Generated Selenium Code:  \n", selenium_code)
+        print("\n   Setting up Chrome and Running Tests:  ")
+        execute_selenium_code(selenium_code, url)
+    else:
+        print("Failed to generate Selenium code.")
+
+if _name_ == "_main_":
+    main()
