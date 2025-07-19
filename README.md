@@ -8,3 +8,5 @@ The raw output is refined through three post-processing steps. First, clean-sele
 
 The cleaned and formatted script is saved as a .py file named generated-test.py. The execute-selenium-code() function is then called to launch the Chrome browser, run the test script, and log the results. Any runtime errors are caught and printed, allowing the pipeline to continue running. At the end, the terminal shows a summary of test performance, serving as a simple reporting method.
 This workflow demonstrates how the framework maintains tight integration between all components while preserving modular independence, thereby facilitating robustness and extensibility.
+
+Demo Video Link= https://drive.google.com/file/d/11tUOwfY0b6du0wD-lhQRxpjzAB6pveqP/view?usp=sharing 
