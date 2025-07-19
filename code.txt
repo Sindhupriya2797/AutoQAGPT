@@ -35,13 +35,15 @@ def generate_selenium_code(url, parsed_data):
         f"URL: {url}\n\n"
         f"Parsed Data:\n{json.dumps(parsed_data, indent=2)[:1000]}...\n\n"
         f"Instructions:\n"
-        f"1. Write at least 10 test cases to verify elements like titles, headings, images and write test case for links in the last.\n"
-        f"2. Automate each test case and provide the Selenium Python code, if links are present, click on 2 links and navigate.\n"
-        f"3. Write the Chrome driver setup using ChromeOptions but exclude the '--headless' argument.\n"
-        f"4. write the code for maximizing the chrome window and time.sleep() for loading the elements.\n"
-        f"5. Replace find_element_by_* methods with find_element(By.*).\n"
-        f"6. Open Chrome and test the test cases which are generated.\n"
-        f"7. Log the pass/fail result of each test case beside the test case name.\n"
+        f"1. Write at least 20 test cases to verify elements like titles, headings, and images. Write test cases for links at the end.\n"
+        f"2. Number each test case sequentially (e.g., Test 1, Test 2, ..., Test 10) and ensure they are executed in order.\n"
+        f"3. Automate each test case and provide the complete Selenium Python code. If links are present, click on any 2 links and verify navigation.\n"
+        f"4. Use ChromeDriver setup with ChromeOptions, but exclude the '--headless' argument.\n"
+        f"5. Include code to maximize the Chrome window and use time.sleep() to wait for elements to load.\n"
+        f"6. Use 'find_element(By.X)' instead of deprecated 'find_element_by_*' methods.\n"
+        f"7. Execute all test cases one by one in the Chrome browser in the same order as written.\n"
+        f"8. Log the result (Pass/Fail) of each test case right beside the test case number and description.\n"
+        f"9. Ensure the numbering is strictly in ascending order without skipping or repeating numbers.\n"
     )
     try:
         response = openai.chat.completions.create(
