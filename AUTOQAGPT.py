@@ -9,7 +9,7 @@ import autopep8
 import re
 
 # Setting API key
-openai.api_key = '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'
+openai.api_key = 'Paste the ChatGPT-API key here'
 
 # Fetching HTML content from the URL
 def fetch_html(url):
@@ -137,4 +137,5 @@ def main():
         print("Failed to generate Selenium code.")
 
 if __name__ == "__main__":
+
     main()
