@@ -165,8 +165,8 @@ def generate_with_grok(prompt):
 
 
 
-        chat = client.chat.create(model="grok-4")
-        chat.append(system("You are a senior Selenium QA engineer."))
+        chat = client.chat.create(model="grok-code-fast-1")
+        chat.append(system("You are a senior Selenium QA engineer who writes clean, optimized Selenium test scripts."))
         chat.append(user(prompt))
 
 
