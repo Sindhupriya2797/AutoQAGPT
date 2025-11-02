@@ -8,8 +8,10 @@ import os
 import autopep8
 import re
 
+
+
 # Setting API key
-openai.api_key = 'Paste the ChatGPT-API key here'
+openai.api_key = 'Paste your OpenAI API key here'
 
 # Fetching HTML content from the URL
 def fetch_html(url):
@@ -17,94 +19,177 @@ def fetch_html(url):
     response.raise_for_status()
     return BeautifulSoup(response.text, 'html.parser')
 
-# Parsing the HTML to extract all the elements
+
+# parse_html()
 def parse_html(soup):
+    """
+    Parses the HTML content and extracts static and interactive elements,
+    including forms, inputs, buttons, and selects.
+    """
     parsed_data = {
-        'title': soup.title.string if soup.title else "No title found",
+        'title': soup.title.string.strip() if soup.title and soup.title.string else "No title found",
+
+        # Links (<a>)
         'links': [a['href'] for a in soup.find_all('a', href=True)],
-        'headings': {f"h{level}": [h.text.strip() for h in soup.find_all(f"h{level}")] for level in range(1, 7)},
+
+        # Headings (h1–h6)
+        'headings': {
+            f"h{level}": [h.get_text(strip=True) for h in soup.find_all(f"h{level}")]
+            for level in range(1, 7)
+        },
+
+        # Images (<img>)
         'images': [img['src'] for img in soup.find_all('img', src=True)],
 
+        # Forms (<form>)
+        'forms': [
+            {
+                'action': form.get('action'),
+                'method': form.get('method'),
+                'id': form.get('id'),
+                'name': form.get('name')
+            }
+            for form in soup.find_all('form')
+        ],
+
+        # Input fields (<input>)
+        'inputs': [
+            {
+                'type': inp.get('type'),
+                'name': inp.get('name'),
+                'id': inp.get('id'),
+                'placeholder': inp.get('placeholder')
+            }
+            for inp in soup.find_all('input')
+        ],
+
+        # Buttons (<button>)
+        'buttons': [
+            {
+                'text': btn.get_text(strip=True),
+                'type': btn.get('type'),
+                'id': btn.get('id'),
+                'name': btn.get('name')
+            }
+            for btn in soup.find_all('button')
+        ],
+
+        # Select dropdowns (<select>)
+        'selects': [
+            {
+                'name': sel.get('name'),
+                'id': sel.get('id'),
+                'options': [opt.get_text(strip=True) for opt in sel.find_all('option')]
+            }
+            for sel in soup.find_all('select')
+        ]
     }
+
     return parsed_data
 
-# Generating Selenium code using OpenAI
+
+# generate_selenium_code()
 def generate_selenium_code(url, parsed_data):
+    """
+    Sends structured HTML data to the LLM and requests clean, executable Python Selenium code only.
+    The model is explicitly instructed to output raw Python code with no extra text or Markdown.
+    """
     prompt = (
-        f"Generate robust Selenium Python code based on the following parsed HTML data:\n\n"
-        f"URL: {url}\n\n"
-        f"Parsed Data:\n{json.dumps(parsed_data, indent=2)[:1000]}...\n\n"
-        f"Instructions:\n"
-        f"1. Write at least 30 test cases to verify elements like titles, headings, and images. Write test cases for links at the end.\n"
-        f"2. Number each test case sequentially (e.g., Test 1, Test 2, ..., Test 10) and ensure they are executed in order.\n"
-        f"3. Automate each test case and provide the complete Selenium Python code. If links are present, click on any 2 links and verify navigation.\n"
-        f"4. Use ChromeDriver setup with ChromeOptions, but exclude the '--headless' argument.\n"
-        f"5. Include code to maximize the Chrome window and use time.sleep() to wait for elements to load.\n"
-        f"6. Use 'find_element(By.X)' instead of deprecated 'find_element_by_*' methods.\n"
-        f"7. Execute all test cases one by one in the Chrome browser in the same order as written.\n"
-        f"8. Log the result (Pass/Fail) of each test case right beside the test case number and description.\n"
-        f"9. Ensure the numbering is strictly in ascending order without skipping or repeating numbers.\n"
+        f"-You are a **strict code generator**. Your output must contain ONLY executable Python code, "
+        f"-with no explanations, comments, or markdown fences.\n\n"
+        f"-Generate Selenium Python test code for the following parsed HTML data.\n\n"
+        f"-URL: {url}\n\n"
+        f"-Parsed Data:\n{json.dumps(parsed_data, indent=2)[:2000]}...\n\n"
+        f"-Instructions:\n"
+        f"-Add test for javascript based webelements also"
+        f"-Automate each test case using Selenium 4+ syntax.\n"
+        f"-**Use only 'find_element(By.<LOCATOR>, value)' and 'find_elements(By.<LOCATOR>, value)'** — never use deprecated 'find_element_by_*' or 'find_elements_by_*' methods.\n"
+        f"-Import 'By' from 'selenium.webdriver.common.by' at the top of the code.\n"
+        f"- Open the page using ChromeDriver (not headless) and maximise the window.\n"
+        f"- Add time.sleep() where ever needed"
+        f"- Create 30 sequential test cases that interact with the elements (titles, headings, images, links, forms, inputs, buttons, and selects).\n"
+        f"- Each test should include realistic user actions (typing, clicking, submitting, selecting options) with time.sleep() between actions.\n"
+        f"- Log each test as 'Test X Passed/Failed' directly in the console.\n"
+        f"- Include 'driver.quit()' at the end of the script.\n"
+        f"- Do NOT include markdown (```) or any descriptive text before or after the code.\n"
+        f"- The entire output must be syntactically valid Python — ready to run as-is.\n"
+
     )
 
     try:
         response = openai.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0,
-            max_tokens=1500
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a Senior Selenium Automation Tester with 10+ years of experience "
+                        "in Python and QA automation. Your job is to generate perfect, executable "
+                        "Python Selenium test scripts — no markdown, no explanations, only clean code."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+            max_tokens=1800,
         )
-        return response.choices[0].message.content
+
+        code_output = response.choices[0].message.content.strip()
+
+        # Remove markdown fences if any
+        code_output = re.sub(r"^```(?:python)?", "", code_output, flags=re.MULTILINE).strip()
+        code_output = re.sub(r"```$", "", code_output, flags=re.MULTILINE).strip()
+
+        match = re.search(r"(?m)^(from\s+\S+\s+import\s+\S+|import\s+\S+)", code_output)
+        if match:
+            code_output = code_output[match.start():]
+
+        # Keep all lines up to and including driver.quit()
+        match_end = re.search(r"driver\.quit\(\)", code_output)
+        if match_end:
+            code_output = code_output[: match_end.end()]
+
+        return code_output.strip()
+
     except Exception as e:
         print(f"Error generating Selenium code: {e}")
         return None
 
+
+
+
+
 # Setting up Chrome browser for testing
 def setup_chrome():
     options = Options()
-    # Explicitly ensure no "--headless" argument is used
     driver = webdriver.Chrome(options=options)
     return driver
 
-# Cleaning and formating the generated code using autopep8
-def format_selenium_code(selenium_code):
-    formatted_code = autopep8.fix_code(selenium_code)
-    return formatted_code
 
-# Removing unwanted sections using regex
+# Formatting and cleaning the generated code
+def format_selenium_code(selenium_code):
+    return autopep8.fix_code(selenium_code)
+
+
 def clean_selenium_code(code):
     unwanted_patterns = [
-        r"Here is a sample Selenium Python code based on the parsed HTML data and instructions provided:\s*",
-        r"Here is a sample Selenium Python code based on the parsed HTML data and instructions:\s*",
-        r"Here is the Selenium Python code based on the instructions:\s*",
-        r"Here is a sample Selenium Python code that follows the instructions:\s*",
-        r"Here is a sample Selenium Python code to automate the test cases based on the parsed HTML data:\s*",
-        r"Here is the Selenium Python code for the given instructions:\s*",
-        r"Here is the Selenium Python code based on the parsed HTML data:\s*",
-        r"Here is the Selenium Python code based on the parsed HTML data and instructions:\s*",
-        r"Here is the Selenium Python code based on your instructions:\s*",
-        r"Here is a sample Selenium Python code based on your instructions:\s*",
-        r"Here is the Selenium Python code based on the given instructions:\s*",
-        r"python",
-        r"",
-        r"python",
-        r"\n```",
-        r"```",
-        r"Please replace '/path/to/chromedriver' with the actual path of your ChromeDriver\..?tests in the browser without actually opening it\.\s",
-        r"This script checks the number of elements like titles, links, headings, images, and buttons\..?prints that the test failed\.\s",
-        r"Please note that this is a basic script\..?more detailed assertions\(e\.g\., checking the text of headings, the URLs of links, etc\)\.\s"
+        r"Here is.*?Selenium Python code.*?:\s*",
+        r"```python", r"```",
+        r"Please replace.*?chromedriver.*?\s",
+        r"This script checks.*?assertions.*?\s",
     ]
     for pattern in unwanted_patterns:
         code = re.sub(pattern, '', code, flags=re.DOTALL)
     return code
 
-# Removing lines after driver.quit()
+
 def remove_lines_after_quit(code):
     lines = code.splitlines()
     for i, line in enumerate(lines):
         if 'driver.quit()' in line:
             return '\n'.join(lines[:i + 1])
-    print("No driver.quit() statement found.")
     return code
+
 
 # Executing generated Selenium code
 def execute_selenium_code(selenium_code, url):
@@ -114,28 +199,29 @@ def execute_selenium_code(selenium_code, url):
 
     with open("generated_test.py", "w") as file:
         file.write(final_code)
-    print("\n   Selenium Test Script Saved  \n")
+    print("\n Selenium Test Script Saved as generated_test.py")
 
-    print("\n   Running Selenium Tests:  ")
+    print("\n Running Selenium Tests...\n")
     os.system("python generated_test.py")
+
 
 # Main function
 def main():
     url = input("Enter the URL to parse and test: ").strip()
-    print("\n  Fetching and Parsing HTML:")
+    print("\n Fetching and Parsing HTML...")
     soup = fetch_html(url)
     parsed_data = parse_html(soup)
-    print("\n  Parsed Data is: \n", json.dumps(parsed_data, indent=2))
+    print("\n Parsed Data:\n", json.dumps(parsed_data, indent=2))
 
-    print("\n  Generating Selenium Code:")
+    print("\n Generating Selenium Code via LLM...")
     selenium_code = generate_selenium_code(url, parsed_data)
+
     if selenium_code:
-        print("\n  Generated Selenium Code:  \n", selenium_code)
-        print("\n   Setting up Chrome and Running Tests:  ")
+        print("\n Generated Selenium Code:\n", selenium_code[:800], "...\n")
         execute_selenium_code(selenium_code, url)
     else:
         print("Failed to generate Selenium code.")
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     main()
