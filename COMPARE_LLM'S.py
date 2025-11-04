@@ -23,6 +23,7 @@ ANTHROPIC_KEY = "Paste your ANTHROPIC API key here "
 XAI_API_KEY = "Paste your XAI API key here "
 
 
+
 # Fetch HTML content
 
 def fetch_html(url):
@@ -185,6 +186,10 @@ def generate_with_grok(prompt):
 # Main code generation handler
 
 def generate_selenium_code(url, parsed_data, model_choice="gpt4"):
+    """
+        Sends structured HTML data to the LLM and requests clean, executable Python Selenium code only.
+        The model is explicitly instructed to output raw Python code with no extra text or Markdown.
+        """
     prompt = (
         f"-You are a **strict code generator**. Your output must contain ONLY executable Python code, "
         f"-with no explanations, comments, or markdown fences.\n\n"
