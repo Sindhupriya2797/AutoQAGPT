@@ -1,4 +1,4 @@
-The AutoQAGPT is controlled by the main() function, which coordinates the entire framework from HTML extraction to test execution. This function manages the overall workflow, maintains data consistency, and handles errors at each stage.
+The AutoQALLM(AUTOQAGPT) is controlled by the main() function, which coordinates the entire framework from HTML extraction to test execution. This function manages the overall workflow, maintains data consistency, and handles errors at each stage.
 
 The process begins by prompting the user to enter a website URL. The fetch_html() function retrieves the HTML content. If the URL is valid and the server responds correctly, the function returns the content as a BeautifulSoup object. Otherwise, error handling is triggered to stop or retry the process. The HTML is then parsed using the parse_html() function, which extracts key elements such as titles, headings, links, and images. These elements form the input for test generation.
 
